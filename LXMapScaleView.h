@@ -4,6 +4,7 @@
 //  Created by Tamas Lustyik on 2012.01.09..
 //  Copyright (c) 2012 LKXF. All rights reserved.
 //
+//  Updated for iOS7 and ARC by Zoë Smith on 2014.10.25
 
 #import <UIKit/UIKit.h>
 #import <MapKit/MapKit.h>
@@ -60,19 +61,19 @@ typedef enum
 @interface LXMapScaleView : UIView
 
 //! Sets the style of the map scale. Default is kLXMapScaleStyleBar.
-@property (readwrite, nonatomic, assign) LXMapScaleStyle style;
+@property (nonatomic) LXMapScaleStyle style;
 
-//! Sets whether to use the metric or the imperial/customary scale. Default is YES (metric).
-@property (readwrite, nonatomic, assign, getter = isMetric) BOOL metric;
+//! Sets whether to use the metric or the imperial/customary scale. Defaults to whatever is standard for the user's locale.
+@property (nonatomic, getter = isMetric) BOOL metric;
 
 //! Sets the position of the scale relative to the hosting map view. Default is kLXMapScalePositionBottomLeft.
-@property (readwrite, nonatomic, assign) LXMapScalePosition position;
+@property (nonatomic) LXMapScalePosition position;
 
-//! Sets the padding between the scale and the edges of the map view. Default is (10,10,10,10).
-@property (readwrite, nonatomic, assign) UIEdgeInsets padding;
+//! Sets the padding between the scale and the edges of the map view. Default is now (30,10,10,10) to accomodate the iOS7 status bar.
+@property (nonatomic) UIEdgeInsets padding;
 
-//! Sets the maximum width for the view. Default is 160 pixels.
-@property (readwrite, nonatomic, assign) CGFloat maxWidth;
+//! Sets the maximum width for the view. Default is 300 pixels.
+@property (nonatomic) CGFloat maxWidth;
 
 
 /**

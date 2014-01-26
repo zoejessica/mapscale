@@ -4,13 +4,14 @@
 //  Created by Tamas Lustyik on 2012.01.09..
 //  Copyright (c) 2012 LKXF. All rights reserved.
 //
+//  Updated for iOS7 and ARC by Zoë Smith on 2014.10.25
 
 #import "LXMapScaleView.h"
 
 
-static const CGRect kDefaultViewRect = {{0,0},{160,30}};
+static const CGRect kDefaultViewRect = {{0,0},{300,30}};
 static const CGFloat kMinimumWidth = 100.0f;
-static const UIEdgeInsets kDefaultPadding = {10,10,10,10};
+static const UIEdgeInsets kDefaultPadding = {30,10,10,10};
 
 static const double kFeetPerMeter = 1.0/0.3048;
 static const double kFeetPerMile = 5280.0;
@@ -18,76 +19,73 @@ static const double kFeetPerMile = 5280.0;
 
 
 @interface LXMapScaleView ()
-{
-	MKMapView* mapView;
-	UILabel* zeroLabel;
-	UILabel* maxLabel;
-	UILabel* unitLabel;
-	CGFloat scaleWidth;
-}
+
+@property (strong, nonatomic) MKMapView *mapView;
+@property (strong, nonatomic) UILabel *zeroLabel;
+@property (strong, nonatomic) UILabel *maxLabel;
+@property (strong, nonatomic) UILabel *unitLabel;
+@property (nonatomic) CGFloat scaleWidth;
 
 - (id)initWithMapView:(MKMapView*)aMapView;
 - (void)constructLabels;
 
 @end
 
-
-
 @implementation LXMapScaleView
-
-@synthesize style;
-@synthesize metric;
-@synthesize position;
-@synthesize padding;
-@synthesize maxWidth;
-
 
 // -----------------------------------------------------------------------------
 // LXMapScaleView::mapScaleForMapView:
 // -----------------------------------------------------------------------------
-+ (LXMapScaleView*)mapScaleForMapView:(MKMapView*)aMapView
-{
-	if ( !aMapView )
-	{
++ (LXMapScaleView *)mapScaleForMapView:(MKMapView *)mapView {
+	
+    if (!mapView) {
 		return nil;
 	}
 	
-	for ( UIView* subview in aMapView.subviews )
-	{
-		if ( [subview isKindOfClass:[LXMapScaleView class]] )
-		{
-			return (LXMapScaleView*)subview;
+	for (UIView *subview in mapView.subviews) {
+		if ([subview isKindOfClass:[LXMapScaleView class]]) {
+			return (LXMapScaleView *)subview;
 		}
 	}
-
-	return [[[LXMapScaleView alloc] initWithMapView:aMapView] autorelease];
+	return [[LXMapScaleView alloc] initWithMapView:mapView];
 }
-
 
 // -----------------------------------------------------------------------------
 // LXMapScaleView::initWithMapView:
 // -----------------------------------------------------------------------------
-- (id)initWithMapView:(MKMapView*)aMapView
-{
-	if ( (self = [super initWithFrame:kDefaultViewRect]) )
-	{
-		self.opaque = NO;
-		self.clipsToBounds = YES;
-		self.userInteractionEnabled = NO;
+
+- (void)commonInit {
+    
+    self.opaque = NO;
+    self.clipsToBounds = YES;
+    self.userInteractionEnabled = NO;
+    
+    _metric = [self userInMetricLocale];
+    _style = kLXMapScaleStyleBar;
+    _position = kLXMapScalePositionBottomLeft;
+    _padding = kDefaultPadding;
+    _maxWidth = kDefaultViewRect.size.width;
+    
+    [self constructLabels];
+    
+}
+
+- (instancetype)initWithMapView:(MKMapView*)mapView {
+    
+	if ((self = [super initWithFrame:kDefaultViewRect])) {
 		
-		mapView = aMapView;
-		metric = YES;
-		style = kLXMapScaleStyleBar;
-		position = kLXMapScalePositionBottomLeft;
-		padding = kDefaultPadding;
-		maxWidth = kDefaultViewRect.size.width;
-		
-		[self constructLabels];
-		
-		[aMapView addSubview:self];
+        _mapView = mapView;
+        [self commonInit];
+		[mapView addSubview:self];
 	}
 	
 	return self;
+}
+
+- (BOOL)userInMetricLocale {
+    
+    NSLocale *currentLocale = [NSLocale currentLocale];
+    return [[currentLocale objectForKey:NSLocaleUsesMetricSystem] boolValue];
 }
 
 
@@ -97,36 +95,33 @@ static const double kFeetPerMile = 5280.0;
 - (void)constructLabels
 {
 	UIFont* font = [UIFont systemFontOfSize:12.0f];
-	zeroLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 8, 10)];
-	zeroLabel.backgroundColor = [UIColor clearColor];
-	zeroLabel.textColor = [UIColor whiteColor];
-	zeroLabel.shadowColor = [UIColor blackColor];
-	zeroLabel.shadowOffset = CGSizeMake(1, 1);
-	zeroLabel.text = @"0";
-	zeroLabel.font = font;
-	[self addSubview:zeroLabel];
-	[zeroLabel release];
+	self.zeroLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 8, 10)];
+	self.zeroLabel.backgroundColor = [UIColor clearColor];
+	self.zeroLabel.textColor = [UIColor blackColor];
+	self.zeroLabel.shadowColor = [UIColor clearColor];
+	self.zeroLabel.shadowOffset = CGSizeMake(1, 1);
+	self.zeroLabel.text = @"0";
+	self.zeroLabel.font = font;
+	[self addSubview:self.zeroLabel];
 	
-	maxLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 10, 10)];
-	maxLabel.backgroundColor = [UIColor clearColor];
-	maxLabel.textColor = [UIColor whiteColor];
-	maxLabel.shadowColor = [UIColor blackColor];
-	maxLabel.shadowOffset = CGSizeMake(1, 1);
-	maxLabel.text = @"1";
-	maxLabel.font = font;
-	maxLabel.textAlignment = UITextAlignmentRight;
-	[self addSubview:maxLabel];
-	[maxLabel release];
+	self.maxLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 10, 10)];
+	self.maxLabel.backgroundColor = [UIColor clearColor];
+	self.maxLabel.textColor = [UIColor blackColor];
+	self.maxLabel.shadowColor = [UIColor clearColor];
+	self.maxLabel.shadowOffset = CGSizeMake(1, 1);
+	self.maxLabel.text = @"1";
+	self.maxLabel.font = font;
+	self.maxLabel.textAlignment = NSTextAlignmentRight;
+	[self addSubview:self.maxLabel];
 	
-	unitLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 0, 18, 10)];
-	unitLabel.backgroundColor = [UIColor clearColor];
-	unitLabel.textColor = [UIColor whiteColor];
-	unitLabel.shadowColor = [UIColor blackColor];
-	unitLabel.shadowOffset = CGSizeMake(1, 1);
-	unitLabel.text = @"m";
-	unitLabel.font = font;
-	[self addSubview:unitLabel];
-	[unitLabel release];
+	self.unitLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 0, 18, 10)];
+	self.unitLabel.backgroundColor = [UIColor clearColor];
+	self.unitLabel.textColor = [UIColor blackColor];
+	self.unitLabel.shadowColor = [UIColor clearColor];
+	self.unitLabel.shadowOffset = CGSizeMake(1, 1);
+	self.unitLabel.text = @"m";
+	self.unitLabel.font = font;
+	[self addSubview:self.unitLabel];
 }
 
 
@@ -135,20 +130,20 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)update
 {
-	if ( !mapView || !mapView.bounds.size.width )
+	if ( !self.mapView || !self.mapView.bounds.size.width )
 	{
 		return;
 	}
 	
-	CLLocationDistance horizontalDistance = MKMetersPerMapPointAtLatitude(mapView.centerCoordinate.latitude);
-	float metersPerPixel = mapView.visibleMapRect.size.width * horizontalDistance / mapView.bounds.size.width;
+	CLLocationDistance horizontalDistance = MKMetersPerMapPointAtLatitude(self.mapView.centerCoordinate.latitude);
+	float metersPerPixel = self.mapView.visibleMapRect.size.width * horizontalDistance / self.mapView.bounds.size.width;
 	
-	CGFloat maxScaleWidth = maxWidth-40;
+	CGFloat maxScaleWidth = self.maxWidth-40;
 	
 	NSUInteger maxValue = 0;
 	NSString* unit = @"";
 	
-	if ( metric )
+	if ( self.metric )
 	{
 		float meters = maxScaleWidth*metersPerPixel;
 		
@@ -163,7 +158,7 @@ static const double kFeetPerMile = 5280.0;
 			{
 				if ( kilometers < kKilometerScale[i] )
 				{
-					scaleWidth = maxScaleWidth * kKilometerScale[i-1]/kilometers;
+					self.scaleWidth = maxScaleWidth * kKilometerScale[i-1]/kilometers;
 					maxValue = kKilometerScale[i-1];
 					break;
 				}
@@ -179,7 +174,7 @@ static const double kFeetPerMile = 5280.0;
 			{
 				if ( meters < kMeterScale[i] )
 				{
-					scaleWidth = maxScaleWidth * kMeterScale[i-1]/meters;
+					self.scaleWidth = maxScaleWidth * kMeterScale[i-1]/meters;
 					maxValue = kMeterScale[i-1];
 					break;
 				}
@@ -201,7 +196,7 @@ static const double kFeetPerMile = 5280.0;
 			{
 				if ( miles < kMileScale[i] )
 				{
-					scaleWidth = maxScaleWidth * kMileScale[i-1]/miles;
+					self.scaleWidth = maxScaleWidth * kMileScale[i-1]/miles;
 					maxValue = kMileScale[i-1];
 					break;
 				}
@@ -217,7 +212,7 @@ static const double kFeetPerMile = 5280.0;
 			{
 				if ( feet < kFootScale[i] )
 				{
-					scaleWidth = maxScaleWidth * kFootScale[i-1]/feet;
+					self.scaleWidth = maxScaleWidth * kFootScale[i-1]/feet;
 					maxValue = kFootScale[i-1];
 					break;
 				}
@@ -225,8 +220,8 @@ static const double kFeetPerMile = 5280.0;
 		}
 	}
 	
-	maxLabel.text = [NSString stringWithFormat:@"%d",maxValue];
-	unitLabel.text = unit;
+	self.maxLabel.text = [NSString stringWithFormat:@"%d",maxValue];
+	self.unitLabel.text = unit;
 	
 	[self layoutSubviews];
 }
@@ -255,9 +250,9 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)setMaxWidth:(CGFloat)aMaxWidth
 {
-	if ( maxWidth != aMaxWidth && aMaxWidth >= kMinimumWidth )
+	if ( _maxWidth != aMaxWidth && aMaxWidth >= kMinimumWidth )
 	{
-		maxWidth = aMaxWidth;
+		_maxWidth = aMaxWidth;
 		
 		[self setNeedsLayout];
 	}
@@ -270,9 +265,9 @@ static const double kFeetPerMile = 5280.0;
 - (void)setAlpha:(CGFloat)aAlpha
 {
 	[super setAlpha:aAlpha];
-	zeroLabel.alpha = aAlpha;
-	maxLabel.alpha = aAlpha;
-	unitLabel.alpha = aAlpha;
+	self.zeroLabel.alpha = aAlpha;
+	self.maxLabel.alpha = aAlpha;
+	self.unitLabel.alpha = aAlpha;
 }
 
 
@@ -281,9 +276,9 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)setStyle:(LXMapScaleStyle)aStyle
 {
-	if ( style != aStyle )
+	if ( _style != aStyle )
 	{
-		style = aStyle;
+		_style = aStyle;
 		
 		[self setNeedsDisplay];
 	}
@@ -295,9 +290,9 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)setPosition:(LXMapScalePosition)aPosition
 {
-	if ( position != aPosition )
+	if ( _position != aPosition )
 	{
-		position = aPosition;
+		_position = aPosition;
 
 		[self setNeedsLayout];
 	}
@@ -309,9 +304,9 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)setMetric:(BOOL)aIsMetric
 {
-	if ( metric != aIsMetric )
+	if ( self.metric != aIsMetric )
 	{
-		metric = aIsMetric;
+		self.metric = aIsMetric;
 		
 		[self update];
 	}
@@ -323,28 +318,28 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)layoutSubviews
 {
-	CGSize maxLabelSize = [maxLabel.text sizeWithFont:maxLabel.font];
-	maxLabel.frame = CGRectMake(zeroLabel.frame.size.width/2.0f+1+scaleWidth+1 - (maxLabelSize.width+1)/2.0f,
+    CGSize maxLabelSize = [self.maxLabel.text sizeWithAttributes:@{ NSFontAttributeName : self.maxLabel.font }];
+	self.maxLabel.frame = CGRectMake(self.zeroLabel.frame.size.width/2.0f+1+self.scaleWidth+1 - (maxLabelSize.width+1)/2.0f,
 								0, 
 								maxLabelSize.width+1,
-								maxLabel.frame.size.height);
+								self.maxLabel.frame.size.height);
 	
-	CGSize unitLabelSize = unitLabel.frame.size;
-	unitLabel.frame = CGRectMake(CGRectGetMaxX(maxLabel.frame),
+	CGSize unitLabelSize = self.unitLabel.frame.size;
+	self.unitLabel.frame = CGRectMake(CGRectGetMaxX(self.maxLabel.frame),
 								 0,
 								 unitLabelSize.width,
 								 unitLabelSize.height);
 	
-	CGSize mapSize = mapView.bounds.size;
+	CGSize mapSize = self.mapView.bounds.size;
 	CGRect frame = self.bounds;
-	frame.size.width = CGRectGetMaxX(unitLabel.frame) - CGRectGetMinX(zeroLabel.frame);
+	frame.size.width = CGRectGetMaxX(self.unitLabel.frame) - CGRectGetMinX(self.zeroLabel.frame);
 	
-	switch (position)
+	switch (self.position)
 	{
 		case kLXMapScalePositionTopLeft:
 		{
-			frame.origin = CGPointMake(padding.left,
-									   padding.top);
+			frame.origin = CGPointMake(self.padding.left,
+									   self.padding.top);
 			self.autoresizingMask = UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleBottomMargin;
 			break;
 		}
@@ -352,15 +347,15 @@ static const double kFeetPerMile = 5280.0;
 		case kLXMapScalePositionTop:
 		{
 			frame.origin = CGPointMake((mapSize.width - frame.size.width) / 2.0f,
-									   padding.top);
+									   self.padding.top);
 			self.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleBottomMargin;
 			break;
 		}
 			
 		case kLXMapScalePositionTopRight:
 		{
-			frame.origin = CGPointMake(mapSize.width - padding.right - frame.size.width,
-									   padding.top);
+			frame.origin = CGPointMake(mapSize.width - self.padding.right - frame.size.width,
+									   self.padding.top);
 			self.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleBottomMargin;
 			break;
 		}
@@ -368,8 +363,8 @@ static const double kFeetPerMile = 5280.0;
 		default:
 		case kLXMapScalePositionBottomLeft:
 		{
-			frame.origin = CGPointMake(padding.left,
-									   mapSize.height - padding.bottom - frame.size.height);
+			frame.origin = CGPointMake(self.padding.left,
+									   mapSize.height - self.padding.bottom - frame.size.height);
 			self.autoresizingMask = UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleTopMargin;
 			break;
 		}
@@ -377,15 +372,15 @@ static const double kFeetPerMile = 5280.0;
 		case kLXMapScalePositionBottom:
 		{
 			frame.origin = CGPointMake((mapSize.width - frame.size.width) / 2.0f,
-									   mapSize.height - padding.bottom - frame.size.height);
+									   mapSize.height - self.padding.bottom - frame.size.height);
 			self.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleRightMargin|UIViewAutoresizingFlexibleTopMargin;
 			break;
 		}
 			
 		case kLXMapScalePositionBottomRight:
 		{
-			frame.origin = CGPointMake(mapSize.width - padding.right - frame.size.width,
-									   mapSize.height - padding.bottom - frame.size.height);
+			frame.origin = CGPointMake(mapSize.width - self.padding.right - frame.size.width,
+									   mapSize.height - self.padding.bottom - frame.size.height);
 			self.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin|UIViewAutoresizingFlexibleTopMargin;
 			break;
 		}
@@ -402,20 +397,20 @@ static const double kFeetPerMile = 5280.0;
 // -----------------------------------------------------------------------------
 - (void)drawRect:(CGRect)aRect
 {
-	if ( !mapView )
+	if ( !self.mapView )
 	{
 		return;
 	}
 
 	CGContextRef ctx = UIGraphicsGetCurrentContext();
 	
-	if ( style == kLXMapScaleStyleTapeMeasure )
+	if ( self.style == kLXMapScaleStyleTapeMeasure )
 	{
 		CGRect baseRect = CGRectZero;
 		UIColor* strokeColor = [UIColor whiteColor];
 		UIColor* fillColor = [UIColor blackColor];
 		
-		baseRect = CGRectMake(3, 24, scaleWidth+2, 3);
+		baseRect = CGRectMake(3, 24, self.scaleWidth+2, 3);
 		[strokeColor setFill];
 		CGContextFillRect(ctx, baseRect);
 		
@@ -427,7 +422,7 @@ static const double kFeetPerMile = 5280.0;
 		for ( int i = 0; i <= 5; ++i )
 		{
 			CGRect rodRect = baseRect;
-			rodRect.origin.x += i*(scaleWidth-1)/5.0f;
+			rodRect.origin.x += i*(self.scaleWidth-1)/5.0f;
 			[strokeColor setFill];
 			CGContextFillRect(ctx, rodRect);
 			
@@ -437,11 +432,11 @@ static const double kFeetPerMile = 5280.0;
 			CGContextFillRect(ctx, rodRect);
 		}
 		
-		baseRect = CGRectMake(3+(scaleWidth-1)/10.0f, 16, 3, 8);
+		baseRect = CGRectMake(3+(self.scaleWidth-1)/10.0f, 16, 3, 8);
 		for ( int i = 0; i < 5; ++i )
 		{
 			CGRect rodRect = baseRect;
-			rodRect.origin.x += i*(scaleWidth-1)/5.0f;
+			rodRect.origin.x += i*(self.scaleWidth-1)/5.0f;
 			[strokeColor setFill];
 			CGContextFillRect(ctx, rodRect);
 
@@ -451,16 +446,16 @@ static const double kFeetPerMile = 5280.0;
 			CGContextFillRect(ctx, rodRect);
 		}
 	}
-	else if ( style == kLXMapScaleStyleBar )
+	else if ( self.style == kLXMapScaleStyleBar )
 	{
-		CGRect scaleRect = CGRectMake(4, 12, scaleWidth, 3);
+		CGRect scaleRect = CGRectMake(4, 12, self.scaleWidth, 3);
 		
 		[[UIColor blackColor] setFill];
 		CGContextFillRect(ctx, CGRectInset(scaleRect, -1, -1));
 		
 		[[UIColor whiteColor] setFill];
 		CGRect unitRect = scaleRect;
-		unitRect.size.width = scaleWidth/5.0f;
+		unitRect.size.width = self.scaleWidth/5.0f;
 		
 		for ( int i = 0; i < 5; i+=2 )
 		{
@@ -468,16 +463,16 @@ static const double kFeetPerMile = 5280.0;
 			CGContextFillRect(ctx, unitRect);
 		}
 	}
-	else if ( style == kLXMapScaleStyleAlternatingBar )
+	else if ( self.style == kLXMapScaleStyleAlternatingBar )
 	{
-		CGRect scaleRect = CGRectMake(4, 12, scaleWidth, 6);
+		CGRect scaleRect = CGRectMake(4, 12, self.scaleWidth, 6);
 		
 		[[UIColor blackColor] setFill];
 		CGContextFillRect(ctx, CGRectInset(scaleRect, -1, -1));
 		
 		[[UIColor whiteColor] setFill];
 		CGRect unitRect = scaleRect;
-		unitRect.size.width = scaleWidth/5.0f;
+		unitRect.size.width = self.scaleWidth/5.0f;
 		unitRect.size.height = scaleRect.size.height/2.0f;
 		
 		for ( int i = 0; i < 5; ++i )
