@@ -76,5 +76,5 @@ Needless to say, you must link your project with the MapKit and CoreLocation fra
 ####Updates in this fork for iOS7 and ARC by Zoë Smith on 25th January 2014
 - scale sets default metric/imperial units according to the user's locale
 - minor rejigging of code to use properties and remove manual memory management
-- default top padding changed to 30px to accomodate the extra content under iOS7's status bar
+- default top padding changed to 30px to accommodate the extra content under iOS7's status bar
 - changed default font formatting to black with no shadow, which looks nicer on the new Apple maps
